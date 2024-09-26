@@ -1,7 +1,7 @@
-import express from 'express';
-import cors from 'cors';
-import { Configuration, OpenAIApi } from 'openai';
-import dotenv from 'dotenv';
+const express = require('express');
+const cors = require('cors');
+const { OpenAI } = require('openai');
+const dotenv = require('dotenv');
 
 // Load environment variables from .env file
 dotenv.config();
@@ -14,33 +14,37 @@ app.use(express.json());
 app.use(cors());
 
 // OpenAI configuration
-const configuration = new Configuration({
+const configuration = {
   apiKey: process.env.OPENAI_API_KEY,
-});
+};
 
-const openaiClient = new OpenAIApi(configuration);
+const client = new OpenAI(configuration);
 
 app.post('/api/suggest-recipes', async (req, res) => {
     const { ingredients } = req.body;
+    let recipe_count = 5;
   
     try {
-      const response = await openaiClient.createChatCompletion({
-        model: 'gpt-3.5-turbo', // or any other model you prefer
+      const response = await client.chat.completions.create({
+        model: 'gpt-4o-mini', // or any other model you prefer
+        response_format: { "type": "json_object" },
         messages: [
           {
             role: 'user',
-            content: `Please suggest 10 recipes based on the following ingredients: ${ingredients.join(', ')}. Each recipe should include the following structure:
+            content: `Please suggest ${recipe_count} recipes based on the following ingredients: ${ingredients.join(', ')}. Each recipe should include the following structure:
             {
-              "title": "Recipe Title",
-              "ingredients": ["ingredient1", "ingredient2", ...],
-              "instructions": ["Step 1", "Step 2", ...]
+                "title": "Recipe Title",
+                "tags": ["tag1", "tag2", ...],
+                "ingredients": ["ingredient1", "ingredient2", ...],
+                "instructions": ["Step 1", "Step 2", ...]
             }
             Please return the data as a JSON array of recipes.`
           }
         ],
       });
   
-      const recipes = response.data.choices[0].message.content; // Extract the recipe suggestions
+      const recipes = response.choices[0].message.content; // Extract the recipe suggestions
+
       res.json(JSON.parse(recipes)); // Parse the JSON string to return as an object
     } catch (error) {
       console.error(error);
